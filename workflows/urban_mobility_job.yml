@@ -1,0 +1,113 @@
+resources:
+  jobs:
+    urban_mobility_pipeline:
+      name: urban_mobility_pipeline
+      tasks:
+        - task_key: ingest_drivers
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/ingestion/ingest_drivers
+          new_cluster: null
+          job_cluster_key: null
+          compute_key: serverless
+
+        - task_key: ingest_vehicles
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/ingestion/ingest_vehicles
+          compute_key: serverless
+
+        - task_key: ingest_zones
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/ingestion/ingest_zones
+          compute_key: serverless
+
+        - task_key: clean_reference_data
+          depends_on:
+            - task_key: ingest_drivers
+            - task_key: ingest_vehicles
+            - task_key: ingest_zones
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/silver/clean_reference_data
+          compute_key: serverless
+
+        - task_key: trip_event_simulator
+          depends_on:
+            - task_key: clean_reference_data
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/simulator/trip_event_simulator
+          compute_key: serverless
+
+        - task_key: ingest_trip_events
+          depends_on:
+            - task_key: trip_event_simulator
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/ingestion/ingest_trip_events
+          compute_key: serverless
+          max_retries: 2
+          min_retry_interval_millis: 300000
+          retry_on_timeout: true
+
+        - task_key: clean_trip_events
+          depends_on:
+            - task_key: ingest_trip_events
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/silver/clean_trip_events
+          compute_key: serverless
+
+        - task_key: build_trip_state
+          depends_on:
+            - task_key: clean_trip_events
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/silver/build_trip_state
+          compute_key: serverless
+
+        - task_key: enrich_trips
+          depends_on:
+            - task_key: build_trip_state
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/silver/enrich_trips
+          compute_key: serverless
+
+        - task_key: zone_demand
+          depends_on:
+            - task_key: enrich_trips
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/gold/zone_demand
+          compute_key: serverless
+
+        - task_key: hourly_revenue
+          depends_on:
+            - task_key: enrich_trips
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/gold/hourly_revenue
+          compute_key: serverless
+
+        - task_key: driver_performance
+          depends_on:
+            - task_key: enrich_trips
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/gold/driver_performance
+          compute_key: serverless
+
+        - task_key: route_performance
+          depends_on:
+            - task_key: enrich_trips
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/gold/route_performance
+          compute_key: serverless
+
+        - task_key: daily_kpis
+          depends_on:
+            - task_key: enrich_trips
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/gold/daily_kpis
+          compute_key: serverless
+
+        - task_key: trip_anomalies
+          depends_on:
+            - task_key: enrich_trips
+          notebook_task:
+            notebook_path: /Workspace/Users/gresahasani19@gmail.com/urban-mobility-lakehouse/src/gold/trip_anomalies
+          compute_key: serverless
+
+      queue:
+        enabled: true

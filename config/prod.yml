@@ -1,0 +1,42 @@
+environment: prod
+
+catalog: urban_mobility
+
+schemas:
+  bronze: bronze
+  silver: silver
+  gold: gold
+  quarantine: quarantine
+  monitoring: monitoring
+
+volumes:
+  landing: /Volumes/urban_mobility/bronze/landing
+  checkpoints: /Volumes/urban_mobility/bronze/checkpoints
+  schemas: /Volumes/urban_mobility/bronze/schemas
+  reference_data: /Volumes/urban_mobility/bronze/reference_data
+  source_data: /Volumes/urban_mobility/bronze/source_data
+
+simulator:
+  target_trips: 10000000
+  batch_size: 1000
+  bad_data_ratios:
+    duplicate_fraction: 0.005
+    late_event_fraction: 0.003
+    invalid_fare_fraction: 0.002
+    missing_id_fraction: 0.002
+    invalid_timestamp_fraction: 0.001
+    anomaly_fraction: 0.002
+    unknown_zone_fraction: 0.0005
+
+streaming:
+  watermark_delay: "2 hours"
+  trigger_mode: "availableNow"
+
+data_quality:
+  fail_pipeline_on_critical: true
+
+governance:
+  groups:
+    - mobility_data_engineers
+    - mobility_analysts
+    - mobility_operations
